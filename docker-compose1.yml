@@ -1,0 +1,31 @@
+version: "3.9"
+
+services:
+
+  backend:
+    build: ./backend
+    container_name: fastapi_backend
+    env_file:
+      - ./backend/.env 
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+
+  frontend:
+    build: ./frontend
+    container_name: react_frontend
+    ports:
+      - "5174:80"
+    depends_on:
+      - backend
+  db:
+   image: ibmcom/db2
+   platform: linux/amd64
+   container_name: db2
+   ports:
+      - "50000:50000"
+   environment:
+      LICENSE: accept
+      DB2INST1_PASSWORD: password123
+      DBNAME: testdb

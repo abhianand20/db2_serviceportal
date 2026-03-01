@@ -1,0 +1,58 @@
+version: "3.9"
+
+services:
+
+  db2:
+    image: ibmcom/db2
+    platform: linux/amd64
+    container_name: db2_cont
+    privileged: true
+    restart: unless-stopped
+    ports:
+      - "50000:50000"
+    environment:
+      LICENSE: accept
+      DB2INST1_PASSWORD: password123
+      DBNAME: testdb 
+    volumes:
+      - serviceportal_db2data:/database
+      - serviceportal_db2data:/home/db2inst1
+    networks:
+      - serviceportal_net
+
+  backend:
+    build: ./backend
+    platform: linux/amd64
+    container_name: backend
+    restart: always
+    depends_on:
+      - db2
+    ports:
+      - "8000:8000"
+    environment:
+      DB2_HOST: db2_cont
+      DB2_PORT: 50000
+      DATABASE: testdb 
+      DB2_USER: db2inst1
+      DB2_PASSWORD: password123
+    networks:
+      - serviceportal_net
+
+  frontend:
+    build: ./frontend
+    container_name: frontend
+    restart: always
+    depends_on:
+      - backend
+    ports:
+      - "5174:80"
+    networks:
+      - serviceportal_net
+
+volumes:
+  serviceportal_db2data:
+
+networks:
+  serviceportal_net:
+    driver: bridge
+

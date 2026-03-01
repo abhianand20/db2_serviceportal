@@ -1,0 +1,25 @@
+version: "3.8"
+
+services:
+  db2:
+    image: ibmcom/db2
+    container_name: db2
+    privileged: true
+    restart: unless-stopped
+
+    ports:
+      - "50000:50000"
+
+    environment:
+      LICENSE: accept
+      DB2INST1_PASSWORD: password
+      DBNAME: testdb
+      BLU: "false"
+      ENABLE_ORACLE_COMPATIBILITY: "false"
+
+    volumes:
+      - db2data:/database
+
+volumes:
+  db2data:
+

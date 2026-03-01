@@ -1,0 +1,40 @@
+
+
+
+  .summary-card {
+    border-radius: 12px;
+    padding: 16px 20px;
+    width: 100%;          /* let it fill container */
+    max-width: 300px;     /* limit maximum width */
+    background-color:#f3d28b;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    transition: transform 0.2s, box-shadow 0.2s;
+    cursor: default;
+    text-align: center;
+    margin: 8px auto;     /* center horizontally with some spacing */
+}
+
+
+
+  
+  /* hover effect */
+  .summary-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+  }
+  
+  .summary-label {
+    font-size: 0.85rem;
+    font-weight: 700; /* bold */
+    color: #333;       /* solid dark color */
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  
+  .summary-value {
+    font-size: 1.5rem;
+    font-weight: 900; /* extra bold for value */
+    color: #111;       /* solid dark color */
+  }
+  

@@ -1,0 +1,47 @@
+.table-card {
+  width: 90%;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background-color: #f9f9f9;
+  padding: 10px;
+  overflow-x: auto; /* scroll only if table is wider than container */
+}
+
+.table-card h3 {
+  margin-bottom: 10px;
+  font-size: 1.2rem;
+  color: #333;
+}
+
+.table-card table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table-card th {
+  padding: 6px 10px;
+  border: 1px solid #ccc;
+  text-align: left;
+  font-size: 0.95rem;
+  background-color: #007bff;
+  color: white;
+  font-weight: 600;
+  white-space: nowrap; /* keep headers in one line */
+}
+
+.table-card td {
+  padding: 6px 10px;
+  border: 1px solid #ccc;
+  text-align: left;
+  font-size: 0.95rem;
+  white-space: normal;    /* wrap long text in cells */
+  word-break: break-word; /* break long words */
+}
+
+.table-card tr:nth-child(even) {
+  background-color: #f2f2f2;
+}
+
+.table-card tr:hover {
+  background-color: #e0f0ff;
+}

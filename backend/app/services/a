@@ -1,0 +1,59 @@
+select SNAPSHOT_TIMESTAMP,TBSP_ID,TBSP_NAME,TBSP_TYPE,TBSP_AUTO_RESIZE_ENABLED,TBSP_STATE,DBPARTITIONNUM,TBSP_TOTAL_SIZE_KB,TBSP_USED_SIZE_KB,TBSP_FREE_SIZE_KB,TBSP_UTILIZATION_PERCENT from SYSIBMADM.TBSP_UTILIZATION where TBSP_STATE <> 'NORMAL' WITH UR
+
+select substr(tabschema,1,15) as TABSCHEMA,substr(tabname,1,30) as TABNAME, card,fpages,npages,status,type,stats_time from syscat.tables where status <> 'N' and type in ('T','G') order by stats_time desc
+
+select substr(tabschema,1,15) as TABSCHEMA,substr(tabname,1,30) as TABNAME,LOAD_STATUS,DBPARTITIONNUM from sysibmadm.admintabinfo where LOAD_STATUS in ('PENDING','IN_PROGRESS')
+
+select substr(tabschema,1,15) as TABSCHEMA,substr(tabname,1,30) as TABNAME,DBPARTITIONNUM from sysibmadm.admintabinfo where reorg_pending = 'Y' with ur
+select substr(tabschema,1,15) as TABSCHEMA,substr(tabname,1,30) as TABNAME,LOAD_STATUS,DBPARTITIONNUM from sysibmadm.admintabinfo where INDEXES_REQUIRE_REBUILD ='Y' with ur
+select substr(viewschema,1,15) as viewschema ,substr(viewname,1,30) as viewname from syscat.views where valid in ('X','N') with ur
+select substr(pkgschema,1,15) as package_schema, substr(pkgname,1,30) as package_name from syscat.packages where valid in ('X','N') with ur
+select substr(OBJECTSCHEMA,1,15) as OBJSCHEMA,substr(OBJECTNAME,1,30) as OBJNAME,OBJECTTYPE,SQLCODE,SQLSTATE,ERRORMESSAGE,INVALIDATE_TIME,LAST_REGEN_TIME from syscat.invalidobjects with ur 
+select substr(trigschema,1,15) as TRIGSCHEMA,substr(trigname,1,30) as TRIGNAME from syscat.triggers where VALID <> 'Y' with ur
+#select substr(indschema,1,15) as INDSCHEMA,substr(indname,1,30) as INDNAME from syscat.indexes where VALID <> 'Y' with ur
+select member,substr(db_name,1,30) as DB_NAME, DB_STATUS,DBPARTITIONNUM from sysibmadm.snapdb order by member,DBPARTITIONNUM with ur
+select varchar(container_name,30) as CONTAINER_NAME, container_type from table(mon_get_container('',-1)) as t where accessible =0
+select substr(bp_name,1,30) as BP_NAME, substr(total_hit_ratio_percent,1,6) as total_hit_ratio_percent, substr(DBPARTITIONNUM,1,2) from sysibmadm.bp_hitratio 
+select  HADR_STATE,HADR_ROLE,HADR_CONNECT_STATUS,HADR_LOG_GAP,HADR_SYNCMODE,PRIMARY_MEMBER_HOST,PRIMARY_INSTANCE,STANDBY_MEMBER_HOST,HADR_LAST_TAKEOVER_TIME from table(mon_get_hadr(-2)) as t with ur
+
+select MEMBER,TOTAL_LOG_AVAILABLE,TOTAL_LOG_USED,(TOTAL_LOG_USED/TOTAL_LOG_AVAILABLE)*100 as TOTAL_LOG_USED_PERCENT, APPLID_HOLDING_OLDEST_XACT from table(mon_get_transaction_log(-2))
+#select substr(tabname,1,30) as TABNAME, substr(tabschema,1,15) as TABSCHEMA, reorg_phase,reorg_end, reorg_start from sysibmadm.snaptabreorg where reorg_phase is not null with ur
+
+#backup history
+
+select  date(timestamp(start_time)) as start_date 
+        , time(timestamp(start_time)) as start_time 
+        , timestampdiff ( 4, varchar(timestamp(end_time) - timestamp(start_time)) ) as duration 
+        , case when objecttype = 'D' 
+            then 'Database' 
+                else objecttype end as object 
+        , case operationtype 
+            when 'D' then 'Delta Offline' 
+            when 'E' then 'Delta Online' 
+            when 'F' then 'Offline' 
+            when 'I' then 'Incremental Offline' 
+            when 'N' then 'Online' 
+            when 'O' then 'Incremental Online' 
+            else operationtype end as Type
+            , DBPARTITIONNUM
+        , devicetype 
+        , sqlcode 
+from sysibmadm.db_history 
+where operation='B' 
+    and seqnum=1 
+order by start_date
+    , start_time 
+    fetch first 50 rows only
+with ur
+
+
+#set integrity pending tables
+#select substr(tabschema,1,15) as TABSCHEMA,substr(tabname,1,30) as TABNAME,DBPARTITIONNUM from sysibmadm.admintabinfo where SET_INTEGRITY_PENDING = 'Y' with ur
+
+#event monitors 
+select evmonname, case when event_mon_state(evmonname) = '1' then 'ACTIVE' when event_mon_state(evmonname) = '0' then 'INACTIVE' end from syscat.eventmonitors with ur
+
+
+select substr(container_name,1,30) as CONTAINER_NAME,substr(tbsp_name,1,30) as TABLESPACE_NAME, pool_read_time from table(mon_get_container('',-2)) as t order by pool_read_time desc with ur fetch first 10 rows only
+#long running query
+select elapsed_time_min,substr(authid,1,10) as auth_id, agent_id, appl_status, substr(stmt_text,1,100) as SQL_TEXT from table(mon_get_pkg_cache_stmt(null,-2)) as t order by elapsed_seconds desc with ur fetch first 10 rows only
