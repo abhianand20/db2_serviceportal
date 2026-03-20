@@ -5,3 +5,4 @@ build/
 .env.local
 __pycache__/
 *.pyc
+frontend/Dockerfile_bkp

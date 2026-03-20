@@ -1,15 +1,18 @@
-FROM  python:3.11-slim
+FROM --platform=linux/arm64 python:3.11-slim-bookworm
 
 WORKDIR /app
 
-COPY requirements.txt .
+RUN apt-get update && apt-get install -y \
+    libaio1 \
+    build-essential \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
 
-RUN pip3 install --no-cache-dir -r requirements.txt
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
 EXPOSE 8000
 
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
-
-

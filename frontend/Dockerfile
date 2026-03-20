@@ -1,5 +1,6 @@
 FROM node:18 AS build
-
+ARG VITE_API_BASE
+ENV VITE_API_BASE=$VITE_API_BASE
 WORKDIR /app
 
 COPY package*.json ./
