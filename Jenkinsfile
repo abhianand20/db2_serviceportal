@@ -17,7 +17,7 @@ pipeline {
                 sh '/opt/homebrew/bin/docker image prune -f'
             }
         }
- docker build --build-arg VITE_API_BASE="http://192.168.1.12:30008/api/v1" -t abhianand2015/db2-sp-frontend-1:latest . 
+  
         stage('Build and Push Images') {
             parallel {
                 stage('Frontend') {
