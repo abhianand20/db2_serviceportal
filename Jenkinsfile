@@ -8,6 +8,7 @@ pipeline {
         FRONT_REPO      = "abhianand2015/db2-sp-frontend-git"
         BACK_REPO       = "abhianand2015/db2-sp-backend-git"
         IMAGE_TAG       = "${env.BUILD_NUMBER}"
+        PATH = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
     }
 
     stages {
