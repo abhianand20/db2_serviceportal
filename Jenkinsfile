@@ -24,7 +24,7 @@ pipeline {
                     steps {
                         dir('frontend') { // Switch to frontend directory
                             echo "Building Frontend..."
-                            sh """/opt/homebrew/bin/docker buildx build --platform linux/amd64,linux/arm64  --build-arg VITE_API_BASE="http://192.168.1.12:30008/api/v1"   -t ${DOCKER_REGISTRY}/${FRONT_REPO}:${IMAGE_TAG} ."""
+                            sh """/opt/homebrew/bin/docker  build --platform linux/amd64  --build-arg VITE_API_BASE="http://192.168.1.12:30008/api/v1"   -t ${DOCKER_REGISTRY}/${FRONT_REPO}:${IMAGE_TAG} ."""
                             sh "/opt/homebrew/bin/docker tag ${DOCKER_REGISTRY}/${FRONT_REPO}:${IMAGE_TAG} ${DOCKER_REGISTRY}/${FRONT_REPO}:latest"
                             
                             script {
@@ -41,7 +41,7 @@ pipeline {
                     steps {
                         dir('backend') { // Switch to backend directory
                             echo "Building Backend..."
-                            sh "/opt/homebrew/bin/docker buildx build --platform linux/amd64,linux/arm64  -t ${DOCKER_REGISTRY}/${BACK_REPO}:${IMAGE_TAG} ."
+                            sh "/opt/homebrew/bin/docker  build --platform linux/amd64 -t ${DOCKER_REGISTRY}/${BACK_REPO}:${IMAGE_TAG} ."
                             sh "/opt/homebrew/bin/docker tag ${DOCKER_REGISTRY}/${BACK_REPO}:${IMAGE_TAG} ${DOCKER_REGISTRY}/${BACK_REPO}:latest"
                             
                             script {
