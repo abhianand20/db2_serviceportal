@@ -22,21 +22,26 @@ pipeline {
         stage('Build and Push Images') {
             parallel {
                 stage('Frontend') {
-                    steps {
-                        dir('frontend') { // Switch to frontend directory
-                            echo "Building Frontend..."
-                            sh """/opt/homebrew/bin/docker  build --platform linux/amd64  --build-arg VITE_API_BASE="http://192.168.1.12:30008/api/v1"   -t ${DOCKER_REGISTRY}/${FRONT_REPO}:${IMAGE_TAG} ."""
-                            sh "/opt/homebrew/bin/docker tag ${DOCKER_REGISTRY}/${FRONT_REPO}:${IMAGE_TAG} ${DOCKER_REGISTRY}/${FRONT_REPO}:latest"
-                            
-                            script {
-                                docker.withRegistry("https://${DOCKER_REGISTRY}", "${DOCKER_CREDS}") {
-                                    docker.image("${DOCKER_REGISTRY}/${FRONT_REPO}:${IMAGE_TAG}").push()
-                                    docker.image("${DOCKER_REGISTRY}/${FRONT_REPO}:latest").push()
+                        steps {
+                            dir('frontend') { // Switch to frontend directory
+                                echo "Building Frontend..."
+                                sh """/opt/homebrew/bin/docker  build --platform linux/amd64  --build-arg VITE_API_BASE="http://192.168.1.12:30008/api/v1"   -t ${DOCKER_REGISTRY}/${FRONT_REPO}:${IMAGE_TAG} ."""
+                                sh "/opt/homebrew/bin/docker tag ${DOCKER_REGISTRY}/${FRONT_REPO}:${IMAGE_TAG} ${DOCKER_REGISTRY}/${FRONT_REPO}:latest"
+                                
+                                withCredentials([usernamePassword(
+                                    credentialsId: DOCKER_CREDS,
+                                    usernameVariable: 'DOCKER_USER',
+                                    passwordVariable: 'DOCKER_PASS'
+                                )]) {
+                                    sh """
+                                    echo \$DOCKER_PASS | /opt/homebrew/bin/docker login -u \$DOCKER_USER --password-stdin ${DOCKER_REGISTRY}
+                                    /opt/homebrew/bin/docker push ${DOCKER_REGISTRY}/${FRONT_REPO}:${IMAGE_TAG}
+                                    /opt/homebrew/bin/docker push ${DOCKER_REGISTRY}/${FRONT_REPO}:latest
+                                    """
                                 }
                             }
                         }
                     }
-                }
 
                 stage('Backend') {
                     steps {
@@ -45,12 +50,17 @@ pipeline {
                             sh "/opt/homebrew/bin/docker  build --platform linux/amd64 -t ${DOCKER_REGISTRY}/${BACK_REPO}:${IMAGE_TAG} ."
                             sh "/opt/homebrew/bin/docker tag ${DOCKER_REGISTRY}/${BACK_REPO}:${IMAGE_TAG} ${DOCKER_REGISTRY}/${BACK_REPO}:latest"
                             
-                            script {
-                                docker.withRegistry("https://${DOCKER_REGISTRY}", "${DOCKER_CREDS}") {
-                                    docker.image("${DOCKER_REGISTRY}/${BACK_REPO}:${IMAGE_TAG}").push()
-                                    docker.image("${DOCKER_REGISTRY}/${BACK_REPO}:latest").push()
+                                withCredentials([usernamePassword(
+                                    credentialsId: DOCKER_CREDS,
+                                    usernameVariable: 'DOCKER_USER',
+                                    passwordVariable: 'DOCKER_PASS'
+                                )]) {
+                                    sh """
+                                    echo \$DOCKER_PASS | /opt/homebrew/bin/docker login -u \$DOCKER_USER --password-stdin ${DOCKER_REGISTRY}
+                                    /opt/homebrew/bin/docker push ${DOCKER_REGISTRY}/${FRONT_REPO}:${IMAGE_TAG}
+                                    /opt/homebrew/bin/docker push ${DOCKER_REGISTRY}/${FRONT_REPO}:latest
+                                    """
                                 }
-                            }
                         }
                     }
                 }
