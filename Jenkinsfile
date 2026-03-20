@@ -57,8 +57,8 @@ pipeline {
                                 )]) {
                                     sh """
                                     echo \$DOCKER_PASS | /opt/homebrew/bin/docker login -u \$DOCKER_USER --password-stdin ${DOCKER_REGISTRY}
-                                    /opt/homebrew/bin/docker push ${DOCKER_REGISTRY}/${FRONT_REPO}:${IMAGE_TAG}
-                                    /opt/homebrew/bin/docker push ${DOCKER_REGISTRY}/${FRONT_REPO}:latest
+                                    /opt/homebrew/bin/docker push ${DOCKER_REGISTRY}/${BACK_REPO}:${IMAGE_TAG}
+                                    /opt/homebrew/bin/docker push ${DOCKER_REGISTRY}/${BACK_REPO}:latest
                                     """
                                 }
                         }
