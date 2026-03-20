@@ -14,7 +14,7 @@ pipeline {
         stage('Pre-flight & Cleanup') {
             steps {
                 sh 'df -h /'
-                sh 'docker image prune -f'
+                sh '/opt/homebrew/bin/docker image prune -f'
             }
         }
 
@@ -24,8 +24,8 @@ pipeline {
                     steps {
                         dir('frontend') { // Switch to frontend directory
                             echo "Building Frontend..."
-                            sh "docker build -t ${DOCKER_REGISTRY}/${FRONT_REPO}:${IMAGE_TAG} ."
-                            sh "docker tag ${DOCKER_REGISTRY}/${FRONT_REPO}:${IMAGE_TAG} ${DOCKER_REGISTRY}/${FRONT_REPO}:latest"
+                            sh "/opt/homebrew/bin/docker build -t ${DOCKER_REGISTRY}/${FRONT_REPO}:${IMAGE_TAG} ."
+                            sh "/opt/homebrew/bin/docker tag ${DOCKER_REGISTRY}/${FRONT_REPO}:${IMAGE_TAG} ${DOCKER_REGISTRY}/${FRONT_REPO}:latest"
                             
                             script {
                                 docker.withRegistry("https://${DOCKER_REGISTRY}", "${DOCKER_CREDS}") {
@@ -41,8 +41,8 @@ pipeline {
                     steps {
                         dir('backend') { // Switch to backend directory
                             echo "Building Backend..."
-                            sh "docker build -t ${DOCKER_REGISTRY}/${BACK_REPO}:${IMAGE_TAG} ."
-                            sh "docker tag ${DOCKER_REGISTRY}/${BACK_REPO}:${IMAGE_TAG} ${DOCKER_REGISTRY}/${BACK_REPO}:latest"
+                            sh "/opt/homebrew/bin/docker build -t ${DOCKER_REGISTRY}/${BACK_REPO}:${IMAGE_TAG} ."
+                            sh "/opt/homebrew/bin/docker tag ${DOCKER_REGISTRY}/${BACK_REPO}:${IMAGE_TAG} ${DOCKER_REGISTRY}/${BACK_REPO}:latest"
                             
                             script {
                                 docker.withRegistry("https://${DOCKER_REGISTRY}", "${DOCKER_CREDS}") {
