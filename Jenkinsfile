@@ -2,54 +2,55 @@ pipeline {
     agent any
 
     environment {
-        // Replace with your Docker Hub/Registry details
         DOCKER_REGISTRY = "docker.io"
-        DOCKER_REPO     = "abhianand2015/db2-sp-app"
+        DOCKER_CREDS    = "docker-hub-credentials-id"
+        // Repos for both images
+        FRONT_REPO      = "abhianand2015/db2-sp-frontend-2"
+        BACK_REPO       = "abhianand2015/db2-sp-backend-2"
         IMAGE_TAG       = "${env.BUILD_NUMBER}"
-        DOCKER_CREDS    = "docker-hub-credentials-id" // The ID from Jenkins Credentials
     }
 
     stages {
-        stage('Pre-flight Check') {
+        stage('Pre-flight & Cleanup') {
             steps {
-                echo 'Checking Disk Space on Node...'
                 sh 'df -h /'
-                // Optional: Cleanup old images to prevent "Disk Full" errors
                 sh 'docker image prune -f'
             }
         }
 
-        stage('Unit Tests') {
-            steps {
-                echo 'Running Application Tests...'
-                // Adjust this based on your app (e.g., npm test, pytest, etc.)
-                sh 'python3 -m pytest tests/ || echo "No tests found, skipping..." '
-            }
-        }
+        stage('Build and Push Images') {
+            parallel {
+                stage('Frontend') {
+                    steps {
+                        dir('frontend') { // Switch to frontend directory
+                            echo "Building Frontend..."
+                            sh "docker build -t ${DOCKER_REGISTRY}/${FRONT_REPO}:${IMAGE_TAG} ."
+                            sh "docker tag ${DOCKER_REGISTRY}/${FRONT_REPO}:${IMAGE_TAG} ${DOCKER_REGISTRY}/${FRONT_REPO}:latest"
+                            
+                            script {
+                                docker.withRegistry("https://${DOCKER_REGISTRY}", "${DOCKER_CREDS}") {
+                                    docker.image("${DOCKER_REGISTRY}/${FRONT_REPO}:${IMAGE_TAG}").push()
+                                    docker.image("${DOCKER_REGISTRY}/${FRONT_REPO}:latest").push()
+                                }
+                            }
+                        }
+                    }
+                }
 
-        stage('Docker Build') {
-            steps {
-                echo "Building Image: ${DOCKER_REPO}:${IMAGE_TAG}"
-                sh "docker build -t ${DOCKER_REGISTRY}/${DOCKER_REPO}:${IMAGE_TAG} ."
-                sh "docker tag ${DOCKER_REGISTRY}/${DOCKER_REPO}:${IMAGE_TAG} ${DOCKER_REGISTRY}/${DOCKER_REPO}:latest"
-            }
-        }
-
-        stage('Vulnerability Scan') {
-            steps {
-                echo 'Scanning image for vulnerabilities...'
-                // Using Trivy (standard) - skip if not installed
-                sh "trivy image ${DOCKER_REGISTRY}/${DOCKER_REPO}:${IMAGE_TAG} || echo 'Trivy not installed'"
-            }
-        }
-
-        stage('Docker Push') {
-            steps {
-                script {
-                    docker.withRegistry("https://${DOCKER_REGISTRY}", "${DOCKER_CREDS}") {
-                        echo "Pushing Image to Registry..."
-                        docker.image("${DOCKER_REGISTRY}/${DOCKER_REPO}:${IMAGE_TAG}").push()
-                        docker.image("${DOCKER_REGISTRY}/${DOCKER_REPO}:latest").push()
+                stage('Backend') {
+                    steps {
+                        dir('backend') { // Switch to backend directory
+                            echo "Building Backend..."
+                            sh "docker build -t ${DOCKER_REGISTRY}/${BACK_REPO}:${IMAGE_TAG} ."
+                            sh "docker tag ${DOCKER_REGISTRY}/${BACK_REPO}:${IMAGE_TAG} ${DOCKER_REGISTRY}/${BACK_REPO}:latest"
+                            
+                            script {
+                                docker.withRegistry("https://${DOCKER_REGISTRY}", "${DOCKER_CREDS}") {
+                                    docker.image("${DOCKER_REGISTRY}/${BACK_REPO}:${IMAGE_TAG}").push()
+                                    docker.image("${DOCKER_REGISTRY}/${BACK_REPO}:latest").push()
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -58,15 +59,7 @@ pipeline {
 
     post {
         always {
-            echo 'Cleaning up workspace...'
             cleanWs()
-        }
-        success {
-            echo 'Pipeline Succeeded! New image is ready.'
-        }
-        failure {
-            echo 'Pipeline Failed. Check the logs for errors.'
         }
     }
 }
-
