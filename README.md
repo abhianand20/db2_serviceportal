@@ -1,101 +1,145 @@
 Db2 Service Portal
 
-A web application for monitoring the health of IBM Db2 LUW databases. It gathers the key health indicators (locks, long-running queries, bufferpool status and more) and presents them in a single dashboard, so DBAs and support teams can triage issues quickly without running manual queries.
+A read-only web portal for monitoring the health and performance of IBM Db2 LUW databases. It collects the key indicators a DBA checks every day (health status, locks, long-running queries, buffer pool and cache hit ratios, backups, HADR state, diagnostic log entries and more) and shows them in one dashboard, so DBAs and support teams can triage issues quickly without running manual queries.
 
-Stack: FastAPI (Python) backend · React frontend · IBM Db2 LUW
+Stack: FastAPI (Python) · React 19 + Vite · IBM Db2 LUW (ibm_db) · Docker · Jenkins
 
 <img width="1280" height="745" alt="SP_Db2_2" src="https://github.com/user-attachments/assets/3a0c0983-e493-41fd-8190-143692984177" />
-
-
 Features
-Lock monitoring: current lock waits and lock holders
-Long-running queries: active statements above a configurable runtime threshold
-Bufferpool status: bufferpool usage and hit ratios
 
+The dashboard has four views, each backed by its own API endpoint.
+
+DB-Summary: instance and database name, service level, database size, partitions (DPF), HADR role and state.
+
+DB-Health: one card per check, with a clear "all normal" or detail view when something is wrong:
+
+Database status, activation state, connection status and start time
+Lock waits, lock escalations and lock timeouts
+Log utilisation and database memory
+Latest full, incremental and delta backups
+Tablespace, container and table states
+HADR status
+Load-pending, reorg-pending and index-rebuild-pending tables
+Invalid views, packages, triggers and other invalid objects
+Event monitor errors
+Tables without a primary key
+Running utilities
 <img width="1280" height="745" alt="SP_db2_3" src="https://github.com/user-attachments/assets/10c17d1e-a599-43e5-b6a9-cd5d9dc414f2" />
 
+DB-Performance:
+
+Buffer pool, package cache and catalog cache hit ratios
+Deadlocks, lock escalations and lock timeouts, with current lock details
+Long-running queries
+Problem queries: high CPU, frequently executed, top sort, table scans and temp-table usage
+Table read efficiency, I/O wait and HADR log gap
 <img width="1280" height="787" alt="SP_DB2_4" src="https://github.com/user-attachments/assets/b17b478b-4368-4522-8e9c-1029e9f98231" />
 
-
-Single-view dashboard: health indicators for a database at a glance
-REST API: every check is available as an endpoint, so it can be reused by scripts or other tools
-<!-- TODO: add or remove checks to match what the portal actually covers (tablespaces, backups, HADR, connections, etc.) -->
-Architecture
-React dashboard  ──HTTP/JSON──▶  FastAPI backend  ──SQL──▶  Db2 LUW
-                                 (health checks)         (monitoring views / admin functions)
-The backend runs health-check queries against Db2 monitoring interfaces and exposes the results as JSON.
-The frontend calls the API and renders the results.
-Prerequisites
-Python 3.10+
-Node.js 18+ and npm
-Network access to a Db2 LUW instance
-A Db2 user with privileges to query the monitoring views (for example, EXECUTE on the monitoring functions and SELECT on the relevant administrative views)
+DiagLog: db2diag entries from the last 24 hours, split by severity (critical, error, warning, info).
 
 <img width="1280" height="524" alt="SP_Db2_5" src="https://github.com/user-attachments/assets/288830bd-7a85-42d2-85ec-cab521d9ed44" />
 
-<!-- TODO: Db2 client / driver requirement (for example the ibm_db Python package) -->
+All checks only read from Db2 monitoring functions and administrative views (MON_GET_*, SYSIBMADM.*, SYSCAT.*). The portal does not change anything in the database.
+
+Architecture
+React (Vite, nginx)  ──HTTP/JSON──▶  FastAPI backend  ──ibm_db──▶  Db2 LUW
+   dashboard                          /api/v1/...                  monitoring views
+
+The database name is part of the URL, so one backend can serve several databases on the same Db2 server.
+
+.
+├── backend/               # FastAPI app
+│   └── app/
+│       ├── api/           # Routes: databases, healthcheck, performance, db2diag
+│       ├── services/      # Health, performance, summary and diag-log queries
+│       ├── db/            # Db2 connection (ibm_db)
+│       └── main.py
+├── frontend/              # React + Vite dashboard (served by nginx in Docker)
+├── docker-compose.yml     # Db2 test container + backend + frontend
+└── Jenkinsfile            # Builds and pushes both Docker images
 Getting started
-1. Clone the repository
+Option 1: Docker Compose (quickest)
+
+Starts a Db2 test container, the backend and the frontend.
+
 bash
-git clone https://github.com/<your-username>/<repo>.git
-cd <repo>
-2. Backend
+git clone https://github.com/abhianand20/db2_serviceportal.git
+cd db2_serviceportal
+docker compose up --build
+Service	URL
+Frontend	http://localhost:5174
+Backend API docs	http://localhost:8000/docs
+Db2	localhost:50000
+
+The Db2 image takes several minutes to create the database on first start. The compose file uses a throwaway test password; change it for anything beyond local testing.
+
+Option 2: Run locally against your own Db2
+
+Backend (Python 3.11):
+
 bash
 cd backend
 python -m venv .venv
-source .venv/bin/activate        # Windows: .venv\Scripts\activate
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-cp .env.example .env             # then edit with your Db2 connection details
-uvicorn main:app --reload
 
-The API runs on http://localhost:8000. Interactive API docs are at http://localhost:8000/docs.
+Create backend/.env:
 
-3. Frontend
+DB2_HOST=your-db2-host
+DB2_PORT=50000
+DB2_USER=monitor_user
+DB2_PASSWORD=your-password
+bash
+uvicorn app.main:app --reload --port 8000
+
+Frontend (Node 18+):
+
 bash
 cd frontend
 npm install
-npm start
+npm run dev
 
-The dashboard runs on http://localhost:3000.
+The frontend reads the API address from VITE_API_BASE (default http://localhost:8000/api/v1). To change it, set the variable before building:
 
-<!-- TODO: confirm folder names, entry-point module and start commands match the repo -->
-Configuration
+bash
+VITE_API_BASE=http://your-host:8000/api/v1 npm run build
+API
 
-Set these in backend/.env:
+Base path: /api/v1/databases/{db_name}
 
-Variable	Description	Example
-DB2_HOST	Db2 server hostname	db2host.example.com
-DB2_PORT	Db2 port	50000
-DB2_DATABASE	Database name	SAMPLE
-DB2_USER	Monitoring user	monitor_user
-DB2_PASSWORD	Password for that user	(do not commit)
-
-Never commit .env or credentials. Use a read-only monitoring account with the minimum privileges required.
-
-API overview
 Endpoint	Description
-GET /locks	Current lock waits and holders
-GET /long-running-queries	Statements running longer than a threshold
-GET /bufferpools	Bufferpool status and hit ratios
-<!-- TODO: replace with your real routes, or link to /docs -->
-Project structure
-.
-├── backend/     # FastAPI app and Db2 health-check logic
-├── frontend/    # React dashboard
-└── README.md
-<!-- TODO: update to match the real layout -->
+GET /summary	Instance, size, partitions and HADR summary
+GET /healthcheck	All health-check results
+GET /performance	Hit ratios, locking, problem queries
+GET /db2diag/crit	Critical diagnostic log entries
+GET /db2diag/err	Error entries
+GET /db2diag/warn	Warning entries
+GET /db2diag/info	Informational entries
+
+There is also GET /health on the backend as a simple liveness check. Full interactive documentation is at /docs (Swagger UI).
+
+Required Db2 privileges
+
+Use a dedicated monitoring user. It needs permission to run the monitoring table functions and read the administrative views the checks use, for example EXECUTE on MON_GET_* and SELECT on SYSIBMADM and SYSCAT views, plus the DBADM-level or monitoring authority your Db2 version requires for those functions.
+
+CI/CD and deployment
+The Jenkinsfile builds the frontend and backend images in parallel, tags them with the build number and latest, and pushes them to Docker Hub.
+The frontend image takes VITE_API_BASE as a build argument, so the same code can point at different backends.
+The frontend's nginx config exposes a /health endpoint for container and Kubernetes health probes.
+Security notes
+Use a read-only monitoring account with the minimum privileges required.
+Keep credentials in environment variables or a secrets manager. .env is git-ignored; never commit it.
+The backend currently allows requests from any origin (CORS *) and has no authentication. Restrict the allowed origins and put it behind authentication and TLS before exposing it outside a trusted network.
 Roadmap
+ Authentication and role-based access
  Alert thresholds and notifications
  Prometheus metrics endpoint
- Docker / docker-compose packaging
- Multi-database support
-<!-- TODO: keep only the items you actually plan to build -->
-Security notes
-Use a dedicated read-only monitoring user.
-Keep credentials in environment variables or a secrets manager, never in source control.
-Run the API behind authentication and TLS if you deploy it beyond a local environment.
+ Kubernetes manifests / Helm chart
+ Additional checks (CPU utilisation, disk I/O, filesystem usage, temp-table availability)
 License
-<!-- TODO: choose a license, for example MIT -->
+
+TBD
+
 Author
 
 Abhishek Anand · Database Reliability Engineer · LinkedIn
