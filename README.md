@@ -142,4 +142,5 @@ TBD
 
 Author
 
-Abhishek Anand · Database Reliability Engineer · LinkedIn
+Abhishek Anand · Database Reliability Engineer · 
+LinkedIn: https://www.linkedin.com/in/abhishek-anand2015
